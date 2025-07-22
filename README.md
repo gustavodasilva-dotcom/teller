@@ -5,9 +5,7 @@ The Hydrogen language compiler.
 Current step to build, run, and access the result of program `test.hy`:
 
 ```
-$ cmake -S . -B build/ && cmake --build build/
-$ ./build/hydro <input.hy>
-$ ./out
+$ cmake -S . -B build/ && cmake --build build/ && ./build/hydro <input.hy> && ./out
 $ echo $?
 ```
 
