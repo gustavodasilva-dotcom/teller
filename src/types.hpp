@@ -14,7 +14,8 @@ enum class TokenType
     close_paren,
     ident,
     let,
-    eq
+    eq,
+    plus
 };
 
 struct Token
@@ -23,38 +24,56 @@ struct Token
     std::optional<std::string> value{};
 };
 
-struct NodeExprIntLit
+struct NodeTermIntLit
 {
     Token int_lit;
 };
 
-struct NodeExprIdent
+struct NodeTermIdent
 {
     Token ident;
 };
 
+struct NodeExpr;
+
+struct NodeBinExprAdd
+{
+    NodeExpr *lhs;
+    NodeExpr *rhs;
+};
+
+struct NodeBinExpr
+{
+    NodeBinExprAdd *add;
+};
+
+struct NodeTerm
+{
+    std::variant<NodeTermIntLit *, NodeTermIdent *> var;
+};
+
 struct NodeExpr
 {
-    std::variant<NodeExprIntLit, NodeExprIdent> var;
+    std::variant<NodeTerm *, NodeBinExpr *> var;
 };
 
 struct NodeStmtExit
 {
-    NodeExpr expr;
+    NodeExpr *expr;
 };
 
 struct NodeStmtLet
 {
     Token ident;
-    NodeExpr expr;
+    NodeExpr *expr;
 };
 
 struct NodeStmt
 {
-    std::variant<NodeStmtExit, NodeStmtLet> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *> var;
 };
 
 struct NodeProg
 {
-    std::vector<NodeStmt> stmts;
+    std::vector<NodeStmt *> stmts;
 };
