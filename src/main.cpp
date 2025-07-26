@@ -1,9 +1,10 @@
 #include <fstream>
 #include <iostream>
+#include <variant>
 
-#include "./generation.hpp"
 #include "./tokenization.hpp"
 #include "./parser.hpp"
+#include "./generation.hpp"
 
 int main(int argc, char *argv[])
 {
