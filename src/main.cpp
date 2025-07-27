@@ -17,6 +17,12 @@ int main(int argc, char *argv[])
 
     std::filesystem::path file_path = argv[1];
 
+    if (!std::filesystem::exists(file_path))
+    {
+        std::cerr << "The file " << file_path << " does not exist." << std::endl;
+        return EXIT_FAILURE;
+    }
+
     if (!file_path.has_extension() || file_path.extension() != ".hy")
     {
         std::cerr << "Invalid Hydrogen file." << std::endl;
