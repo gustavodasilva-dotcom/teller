@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-class ArenaAllocator
+class ArenaAllocator final
 {
 public:
     explicit ArenaAllocator(const size_t max_num_bytes)
@@ -55,7 +55,7 @@ private:
         m_offset = static_cast<std::byte *>(aligned_address) + sizeof(T);
         return static_cast<T *>(aligned_address);
     }
-    
+
     std::size_t m_size;
     std::byte *m_buffer;
     std::byte *m_offset;

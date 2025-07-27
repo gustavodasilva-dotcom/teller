@@ -29,7 +29,7 @@ struct Token
     std::optional<std::string> value{};
 };
 
-std::optional<int> bin_prec(TokenType type)
+inline std::optional<int> bin_prec(const TokenType type)
 {
     switch (type)
     {
@@ -47,12 +47,12 @@ std::optional<int> bin_prec(TokenType type)
 class Tokenizer
 {
 public:
-    inline explicit Tokenizer(std::string src)
+    explicit Tokenizer(std::string src)
         : m_src(std::move(src))
     {
     }
 
-    inline std::vector<Token> tokenize()
+    std::vector<Token> tokenize()
     {
         std::vector<Token> tokens;
 
@@ -169,19 +169,17 @@ public:
     }
 
 private:
-    [[nodiscard]] inline std::optional<char> peek(size_t offset = 0) const
+    [[nodiscard]] std::optional<char> peek(size_t offset = 0) const
     {
         if (m_index + offset >= m_src.length())
         {
             return {};
         }
-        else
-        {
-            return m_src.at(m_index + offset);
-        }
+
+        return m_src.at(m_index + offset);
     }
 
-    inline char consume()
+    char consume()
     {
         return m_src.at(m_index++);
     }
