@@ -7,7 +7,13 @@ $$
         \text{exit}([\text{Expr}]);
         \\
         \text{let}\space\text{ident} \text{=} [\text{Expr}];
+        \\
+        \text{if}\space([\text{Expr}])\space[\text{Scope}]
+        \\
+        [\text{Scope}]
     \end{cases}
+    \\
+    \text{[Scope]} &\to \{[\text{Stmt}]^*\}
     \\
     [\text{Expr}] &\to
     \begin{cases}

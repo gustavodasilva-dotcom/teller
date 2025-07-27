@@ -71,9 +71,24 @@ struct NodeStmtLet
     NodeExpr *expr;
 };
 
+struct NodeScope;
+
+struct NodeStmtIf
+{
+    NodeExpr *expr;
+    NodeScope *scope;
+};
+
+struct NodeStmt;
+
+struct NodeScope
+{
+    std::vector<NodeStmt *> stmts;
+};
+
 struct NodeStmt
 {
-    std::variant<NodeStmtExit *, NodeStmtLet *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeScope *, NodeStmtIf *> var;
 };
 
 struct NodeProg
@@ -192,7 +207,7 @@ public:
 
                 expr->var = add;
             }
-            else if (op.type == TokenType::sub)
+            else if (op.type == TokenType::minus)
             {
                 auto sub = m_allocator.alloc<NodeBinExprSub>();
                 sub->lhs = expr_lhs2;
@@ -208,7 +223,7 @@ public:
 
                 expr->var = multi;
             }
-            else if (op.type == TokenType::div)
+            else if (op.type == TokenType::fslash)
             {
                 auto div = m_allocator.alloc<NodeBinExprDiv>();
                 div->lhs = expr_lhs2;
@@ -221,6 +236,25 @@ public:
         }
 
         return expr_lhs;
+    }
+
+    std::optional<NodeScope *> parse_scope()
+    {
+        if (!try_consume(TokenType::open_curly).has_value())
+        {
+            return {};
+        }
+
+        auto scope = m_allocator.alloc<NodeScope>();
+
+        while (auto stmt = parse_stmt())
+        {
+            scope->stmts.push_back(stmt.value());
+        }
+
+        try_consume(TokenType::close_curly, "Expected `}`.");
+
+        return scope;
     }
 
     std::optional<NodeStmt *> parse_stmt()
@@ -292,6 +326,54 @@ public:
 
             auto stmt = m_allocator.alloc<NodeStmt>();
             stmt->var = stmt_let;
+
+            return stmt;
+        }
+        else if (peek().has_value() && peek().value().type == TokenType::open_curly)
+        {
+            if (auto scope = parse_scope())
+            {
+                auto stmt = m_allocator.alloc<NodeStmt>();
+                stmt->var = scope.value();
+
+                return stmt;
+            }
+            else
+            {
+                std::cerr << "Invalid scope." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (auto if_cond = try_consume(TokenType::if_cond))
+        {
+            try_consume(TokenType::open_paren, "Expected `(`.");
+
+            auto stmt_if = m_allocator.alloc<NodeStmtIf>();
+
+            if (auto expr = parse_expr())
+            {
+                stmt_if->expr = expr.value();
+            }
+            else
+            {
+                std::cerr << "Invalid expression." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            try_consume(TokenType::close_paren, "Expected `)`.");
+
+            if (auto scope = parse_scope())
+            {
+                stmt_if->scope = scope.value();
+            }
+            else
+            {
+                std::cerr << "Invalid scope." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            auto stmt = m_allocator.alloc<NodeStmt>();
+            stmt->var = stmt_if;
 
             return stmt;
         }
