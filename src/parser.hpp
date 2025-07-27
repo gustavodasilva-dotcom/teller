@@ -108,21 +108,15 @@ public:
     {
         if (auto int_lit = try_consume(TokenType::int_lit))
         {
-            auto *term_int_lit = m_allocator.alloc<NodeTermIntLit>();
-            term_int_lit->int_lit = int_lit.value();
-
-            auto term = m_allocator.alloc<NodeTerm>();
-            term->var = term_int_lit;
+            auto term_int_lit = m_allocator.emplace<NodeTermIntLit>(int_lit.value());
+            auto term = m_allocator.emplace<NodeTerm>(term_int_lit);
 
             return term;
         }
         else if (auto ident = try_consume(TokenType::ident))
         {
-            auto term_ident = m_allocator.alloc<NodeTermIdent>();
-            term_ident->ident = ident.value();
-
-            auto term = m_allocator.alloc<NodeTerm>();
-            term->var = term_ident;
+            auto term_ident = m_allocator.emplace<NodeTermIdent>(ident.value());
+            auto term = m_allocator.emplace<NodeTerm>(term_ident);
 
             return term;
         }
@@ -138,11 +132,8 @@ public:
 
             try_consume(TokenType::close_paren, "Expected `)`.");
 
-            auto term_paren = m_allocator.alloc<NodeTermParen>();
-            term_paren->expr = expr.value();
-
-            auto term = m_allocator.alloc<NodeTerm>();
-            term->var = term_paren;
+            auto term_paren = m_allocator.emplace<NodeTermParen>(expr.value());
+            auto term = m_allocator.emplace<NodeTerm>(term_paren);
 
             return term;
         }
@@ -160,8 +151,7 @@ public:
             return {};
         }
 
-        auto expr_lhs = m_allocator.alloc<NodeExpr>();
-        expr_lhs->var = term_lhs.value();
+        auto expr_lhs = m_allocator.emplace<NodeExpr>(term_lhs.value());
 
         while (true)
         {
@@ -194,41 +184,29 @@ public:
                 exit(EXIT_FAILURE);
             }
 
-            auto expr = m_allocator.alloc<NodeBinExpr>();
+            auto expr = m_allocator.emplace<NodeBinExpr>();
 
-            auto expr_lhs2 = m_allocator.alloc<NodeExpr>();
+            auto expr_lhs2 = m_allocator.emplace<NodeExpr>();
             expr_lhs2->var = expr_lhs->var;
 
             if (op.type == TokenType::plus)
             {
-                auto add = m_allocator.alloc<NodeBinExprAdd>();
-                add->lhs = expr_lhs2;
-                add->rhs = expr_rhs.value();
-
+                auto add = m_allocator.emplace<NodeBinExprAdd>(expr_lhs2, expr_rhs.value());
                 expr->var = add;
             }
             else if (op.type == TokenType::minus)
             {
-                auto sub = m_allocator.alloc<NodeBinExprSub>();
-                sub->lhs = expr_lhs2;
-                sub->rhs = expr_rhs.value();
-
+                auto sub = m_allocator.emplace<NodeBinExprSub>(expr_lhs2, expr_rhs.value());
                 expr->var = sub;
             }
             else if (op.type == TokenType::star)
             {
-                auto multi = m_allocator.alloc<NodeBinExprMulti>();
-                multi->lhs = expr_lhs2;
-                multi->rhs = expr_rhs.value();
-
+                auto multi = m_allocator.emplace<NodeBinExprMulti>(expr_lhs2, expr_rhs.value());
                 expr->var = multi;
             }
             else if (op.type == TokenType::fslash)
             {
-                auto div = m_allocator.alloc<NodeBinExprDiv>();
-                div->lhs = expr_lhs2;
-                div->rhs = expr_rhs.value();
-
+                auto div = m_allocator.emplace<NodeBinExprDiv>(expr_lhs2, expr_rhs.value());
                 expr->var = div;
             }
 
@@ -245,7 +223,7 @@ public:
             return {};
         }
 
-        auto scope = m_allocator.alloc<NodeScope>();
+        auto scope = m_allocator.emplace<NodeScope>();
 
         while (auto stmt = parse_stmt())
         {
@@ -270,7 +248,7 @@ public:
             consume();
             consume();
 
-            auto stmt_exit = m_allocator.alloc<NodeStmtExit>();
+            auto stmt_exit = m_allocator.emplace<NodeStmtExit>();
 
             if (auto node_expr = parse_expr())
             {
@@ -286,7 +264,7 @@ public:
 
             try_consume(TokenType::semi, "Missing `;`.");
 
-            auto stmt = m_allocator.alloc<NodeStmt>();
+            auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = stmt_exit;
 
             return stmt;
@@ -307,7 +285,7 @@ public:
 
             consume();
 
-            auto stmt_let = m_allocator.alloc<NodeStmtLet>();
+            auto stmt_let = m_allocator.emplace<NodeStmtLet>();
             stmt_let->ident = consume();
 
             consume();
@@ -324,7 +302,7 @@ public:
 
             try_consume(TokenType::semi, "Expected `;`.");
 
-            auto stmt = m_allocator.alloc<NodeStmt>();
+            auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = stmt_let;
 
             return stmt;
@@ -333,9 +311,7 @@ public:
         {
             if (auto scope = parse_scope())
             {
-                auto stmt = m_allocator.alloc<NodeStmt>();
-                stmt->var = scope.value();
-
+                auto stmt = m_allocator.emplace<NodeStmt>(scope.value());
                 return stmt;
             }
             else
@@ -348,7 +324,7 @@ public:
         {
             try_consume(TokenType::open_paren, "Expected `(`.");
 
-            auto stmt_if = m_allocator.alloc<NodeStmtIf>();
+            auto stmt_if = m_allocator.emplace<NodeStmtIf>();
 
             if (auto expr = parse_expr())
             {
@@ -372,9 +348,7 @@ public:
                 exit(EXIT_FAILURE);
             }
 
-            auto stmt = m_allocator.alloc<NodeStmt>();
-            stmt->var = stmt_if;
-
+            auto stmt = m_allocator.emplace<NodeStmt>(stmt_if);
             return stmt;
         }
         else
