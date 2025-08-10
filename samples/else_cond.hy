@@ -1,9 +1,9 @@
-let x = 10 / 2;
-let y = 1;
+let y = (10 - 2 * 3) / 2;
+let x = 7;
 
-if (y - 1) {
-    exit(69);
-} elif (x) {
+if (1) {
+    exit(x);
+} elif (1) {
     exit(68);
 } else {
     exit(67);

@@ -155,11 +155,15 @@ public:
 
             void operator()(const NodeIfPredElse *else_cond) const
             {
+                gen.m_output << "    ;; else\n";
+
                 gen.gen_scope(else_cond->scope);
             }
 
             void operator()(const NodeIfPredElif *elif) const
             {
+                gen.m_output << "    ;; elif\n";
+
                 gen.gen_expr(elif->expr);
                 gen.pop("rax");
 
@@ -191,14 +195,20 @@ public:
 
             void operator()(const NodeStmtExit *stmt_exit) const
             {
+                gen.m_output << "    ;; exit\n";
+
                 gen.gen_expr(stmt_exit->expr);
                 gen.m_output << "    mov rax, 60\n";
                 gen.pop("rdi");
                 gen.m_output << "    syscall\n";
+
+                gen.m_output << "    ;; /exit\n";
             }
 
             void operator()(const NodeStmtLet *stmt_let) const
             {
+                gen.m_output << "    ;; let\n";
+
                 if (std::find_if(gen.m_vars.cbegin(), gen.m_vars.cend(), [&](const Var &var)
                                  { return var.name == stmt_let->ident.value.value(); }) != gen.m_vars.cend())
                 {
@@ -209,15 +219,23 @@ public:
                 gen.m_vars.push_back({.name = stmt_let->ident.value.value(), .stack_loc = gen.m_stack_size});
 
                 gen.gen_expr(stmt_let->expr);
+
+                gen.m_output << "    ;; /let\n";
             }
 
             void operator()(const NodeScope *scope) const
             {
+                gen.m_output << "    ;; scope\n";
+
                 gen.gen_scope(scope);
+
+                gen.m_output << "    ;; /scope\n";
             }
 
             void operator()(const NodeStmtIf *stmt_if) const
             {
+                gen.m_output << "    ;; if\n";
+
                 gen.gen_expr(stmt_if->expr);
                 gen.pop("rax");
 
@@ -227,14 +245,38 @@ public:
 
                 gen.gen_scope(stmt_if->scope);
 
-                gen.m_output << label << ":\n";
-
                 if (stmt_if->pred.has_value())
                 {
                     const std::string end_label = gen.create_label();
+
+                    gen.m_output << "    jmp " << end_label << "\n";
+                    gen.m_output << label << ":\n";
+
                     gen.gen_if_pred(stmt_if->pred.value(), end_label);
                     gen.m_output << end_label << ":\n";
                 }
+                else
+                {
+                    gen.m_output << label << ":\n";
+                }
+
+                gen.m_output << "    ;; /if\n";
+            }
+
+            void operator()(const NodeStmtAssign *stmt_assign) const
+            {
+                const auto it = std::find_if(gen.m_vars.cbegin(), gen.m_vars.cend(), [&](const Var &var)
+                                             { return var.name == stmt_assign->ident.value.value(); });
+
+                if (it == gen.m_vars.end())
+                {
+                    std::cerr << "Undeclared identifier: " << stmt_assign->ident.value.value() << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                gen.gen_expr(stmt_assign->expr);
+                gen.pop("rax");
+                gen.m_output << "    mov [rsp + " << (gen.m_stack_size - it->stack_loc - 1) * 8 << "], rax\n";
             }
         };
 

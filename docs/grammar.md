@@ -6,7 +6,9 @@ $$
     \begin{cases}
         \text{exit}([\text{Expr}]);
         \\
-        \text{let}\space\text{ident} \text{=} [\text{Expr}];
+        \text{let}\space\text{ident}\space\text{=}\space[\text{Expr}];
+        \\
+        \text{ident}\space\text{=}\space\text{[Expr]};
         \\
         \text{if}\space([\text{Expr}])\space[\text{Scope}]\space\text{[IfPred]}
         \\

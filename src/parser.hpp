@@ -106,9 +106,15 @@ struct NodeScope
     std::vector<NodeStmt *> stmts;
 };
 
+struct NodeStmtAssign
+{
+    Token ident;
+    NodeExpr *expr{};
+};
+
 struct NodeStmt
 {
-    std::variant<NodeStmtExit *, NodeStmtLet *, NodeScope *, NodeStmtIf *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeScope *, NodeStmtIf *, NodeStmtAssign *> var;
 };
 
 struct NodeProg
@@ -361,12 +367,12 @@ public:
                 exit(EXIT_FAILURE);
             }
 
-            consume();
+            consume(); // Consume the 'let' token.
 
             auto stmt_let = m_allocator.emplace<NodeStmtLet>();
             stmt_let->ident = consume();
 
-            consume();
+            consume(); // Consume the equal sign.
 
             if (const auto node_expr = parse_expr())
             {
@@ -382,6 +388,37 @@ public:
 
             auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = stmt_let;
+
+            return stmt;
+        }
+
+        if (peek().has_value() && peek().value().type == TokenType::ident)
+        {
+            if (peek(1).has_value() && peek(1).value().type != TokenType::eq)
+            {
+                std::cerr << "Missing `=`." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            const auto assign = m_allocator.emplace<NodeStmtAssign>();
+            assign->ident = consume();
+
+            consume(); // Consume the equal sign.
+
+            if (const auto expr = parse_expr())
+            {
+                assign->expr = expr.value();
+            }
+            else
+            {
+                std::cerr << "Invalid expression." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            try_consume(TokenType::semi, "Expected `;`.");
+
+            auto stmt = m_allocator.emplace<NodeStmt>();
+            stmt->var = assign;
 
             return stmt;
         }
