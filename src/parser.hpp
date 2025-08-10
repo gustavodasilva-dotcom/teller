@@ -73,10 +73,30 @@ struct NodeStmtLet
 
 struct NodeScope;
 
+struct NodeIfPred;
+
+struct NodeIfPredElif
+{
+    NodeExpr *expr;
+    NodeScope *scope;
+    std::optional<NodeIfPred *> pred;
+};
+
+struct NodeIfPredElse
+{
+    NodeScope *scope;
+};
+
+struct NodeIfPred
+{
+    std::variant<NodeIfPredElse *, NodeIfPredElif *> var;
+};
+
 struct NodeStmtIf
 {
     NodeExpr *expr;
     NodeScope *scope;
+    std::optional<NodeIfPred *> pred;
 };
 
 struct NodeStmt;
@@ -235,6 +255,63 @@ public:
         return scope;
     }
 
+    std::optional<NodeIfPred *> parse_if_pred()
+    {
+        if (try_consume(TokenType::elif))
+        {
+            try_consume(TokenType::open_paren, "Expected `(`.");
+
+            const auto elif = m_allocator.emplace<NodeIfPredElif>();
+
+            if (const auto expr = parse_expr())
+            {
+                elif->expr = expr.value();
+            }
+            else
+            {
+                std::cerr << "Expected expression." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            try_consume(TokenType::close_paren, "Expected `)`.");
+
+            if (const auto scope = parse_scope())
+            {
+                elif->scope = scope.value();
+            }
+            else
+            {
+                std::cerr << "Expected scope." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            elif->pred = parse_if_pred();
+
+            auto pred = m_allocator.emplace<NodeIfPred>(elif);
+            return pred;
+        }
+
+        if (try_consume(TokenType::else_cond))
+        {
+            const auto else_cond = m_allocator.emplace<NodeIfPredElse>();
+
+            if (const auto scope = parse_scope())
+            {
+                else_cond->scope = scope.value();
+            }
+            else
+            {
+                std::cerr << "Expected scope." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            auto pred = m_allocator.emplace<NodeIfPred>(else_cond);
+            return pred;
+        }
+
+        return {};
+    }
+
     std::optional<NodeStmt *> parse_stmt()
     {
         if (peek().value().type == TokenType::exit)
@@ -348,6 +425,8 @@ public:
                 std::cerr << "Invalid scope." << std::endl;
                 exit(EXIT_FAILURE);
             }
+
+            stmt_if->pred = parse_if_pred();
 
             auto stmt = m_allocator.emplace<NodeStmt>(stmt_if);
             return stmt;

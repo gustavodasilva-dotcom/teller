@@ -20,7 +20,9 @@ enum class TokenType
     fslash,
     open_curly,
     close_curly,
-    if_cond
+    if_cond,
+    elif,
+    else_cond
 };
 
 struct Token
@@ -72,23 +74,29 @@ public:
                 if (buf == "exit")
                 {
                     tokens.push_back({.type = TokenType::exit});
-                    buf.clear();
                 }
                 else if (buf == "let")
                 {
                     tokens.push_back({.type = TokenType::let});
-                    buf.clear();
                 }
                 else if (buf == "if")
                 {
                     tokens.push_back({.type = TokenType::if_cond});
-                    buf.clear();
+                }
+                else if (buf == "elif")
+                {
+                    tokens.push_back({.type = TokenType::elif});
+                }
+                else if (buf == "else")
+                {
+                    tokens.push_back({.type = TokenType::else_cond});
                 }
                 else
                 {
                     tokens.push_back({.type = TokenType::ident, .value = buf});
-                    buf.clear();
                 }
+
+                buf.clear();
             }
             else if (std::isdigit(peek().value()))
             {

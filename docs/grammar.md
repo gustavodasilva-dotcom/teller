@@ -8,12 +8,21 @@ $$
         \\
         \text{let}\space\text{ident} \text{=} [\text{Expr}];
         \\
-        \text{if}\space([\text{Expr}])\space[\text{Scope}]
+        \text{if}\space([\text{Expr}])\space[\text{Scope}]\space\text{[IfPred]}
         \\
         [\text{Scope}]
     \end{cases}
     \\
     \text{[Scope]} &\to \{[\text{Stmt}]^*\}
+    \\
+    \text{[IfPred]} &\to
+    \begin{cases}
+        \text{elif}(\text{[Expr]})\space\text{[Scope]}\space\text{[IfPred]}
+        \\
+        \text{else}\text{[Scope]}
+        \\
+        \epsilon
+    \end{cases}
     \\
     [\text{Expr}] &\to
     \begin{cases}
