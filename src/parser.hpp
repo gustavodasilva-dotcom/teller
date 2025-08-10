@@ -130,6 +130,12 @@ public:
     {
     }
 
+    void error_expected_term(const std::string term) const
+    {
+        std::cerr << "Expected `" << term << "` on line " << peek(-1).value().line << "." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     std::optional<NodeTerm *> parse_term()
     {
         if (auto int_lit = try_consume(TokenType::int_lit))
@@ -148,17 +154,17 @@ public:
             return term;
         }
 
-        if (auto open_paren = try_consume(TokenType::open_paren))
+        if (const auto open_paren = try_consume(TokenType::open_paren))
         {
             auto expr = parse_expr();
 
             if (!expr.has_value())
             {
-                std::cerr << "Expected expression." << std::endl;
+                std::cerr << "Expected expression on line " << open_paren.value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::close_paren, "Expected `)`.");
+            try_consume_err(TokenType::close_paren);
 
             auto term_paren = m_allocator.emplace<NodeTermParen>(expr.value());
             auto term = m_allocator.emplace<NodeTerm>(term_paren);
@@ -199,14 +205,14 @@ public:
                 break;
             }
 
-            const auto [type, value] = consume();
+            const auto [type, line, value] = consume();
 
             const int next_min_rec = prec.value() + 1;
             auto expr_rhs = parse_expr(next_min_rec);
 
             if (!expr_rhs.has_value())
             {
-                std::cerr << "Unable to parse expression." << std::endl;
+                std::cerr << "Unable to parse expression on line " << line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -256,7 +262,7 @@ public:
             scope->stmts.push_back(stmt.value());
         }
 
-        try_consume(TokenType::close_curly, "Expected `}`.");
+        try_consume_err(TokenType::close_curly);
 
         return scope;
     }
@@ -265,7 +271,7 @@ public:
     {
         if (try_consume(TokenType::elif))
         {
-            try_consume(TokenType::open_paren, "Expected `(`.");
+            try_consume_err(TokenType::open_paren);
 
             const auto elif = m_allocator.emplace<NodeIfPredElif>();
 
@@ -275,11 +281,11 @@ public:
             }
             else
             {
-                std::cerr << "Expected expression." << std::endl;
+                std::cerr << "Expected expression on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::close_paren, "Expected `)`.");
+            try_consume_err(TokenType::close_paren);
 
             if (const auto scope = parse_scope())
             {
@@ -287,7 +293,7 @@ public:
             }
             else
             {
-                std::cerr << "Expected scope." << std::endl;
+                std::cerr << "Expected scope on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -307,7 +313,7 @@ public:
             }
             else
             {
-                std::cerr << "Expected scope." << std::endl;
+                std::cerr << "Expected scope on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -320,11 +326,11 @@ public:
 
     std::optional<NodeStmt *> parse_stmt()
     {
-        if (peek().value().type == TokenType::exit)
+        if (peek().has_value() && peek().value().type == TokenType::exit)
         {
             if (peek(1).has_value() && peek(1).value().type != TokenType::open_paren)
             {
-                std::cerr << "Missing `(`." << std::endl;
+                std::cerr << "Missing `(` on line " << peek(1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -339,13 +345,13 @@ public:
             }
             else
             {
-                std::cerr << "Invalid expression." << std::endl;
+                std::cerr << "Invalid expression on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::close_paren, "Missing `)`.");
+            try_consume_err(TokenType::close_paren);
 
-            try_consume(TokenType::semi, "Missing `;`.");
+            try_consume_err(TokenType::semi);
 
             auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = stmt_exit;
@@ -357,13 +363,13 @@ public:
         {
             if (peek(1).has_value() && peek(1).value().type != TokenType::ident)
             {
-                std::cerr << "Missing variable identifier." << std::endl;
+                std::cerr << "Missing variable identifier on line " << peek(1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
             if (peek(2).has_value() && peek(2).value().type != TokenType::eq)
             {
-                std::cerr << "Missing `=`." << std::endl;
+                std::cerr << "Missing `=` on line " << peek(2).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -380,11 +386,11 @@ public:
             }
             else
             {
-                std::cerr << "Invalid expression." << std::endl;
+                std::cerr << "Invalid expression on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::semi, "Expected `;`.");
+            try_consume_err(TokenType::semi);
 
             auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = stmt_let;
@@ -396,7 +402,7 @@ public:
         {
             if (peek(1).has_value() && peek(1).value().type != TokenType::eq)
             {
-                std::cerr << "Missing `=`." << std::endl;
+                std::cerr << "Missing `=` on line " << peek(1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -411,11 +417,11 @@ public:
             }
             else
             {
-                std::cerr << "Invalid expression." << std::endl;
+                std::cerr << "Invalid expression on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::semi, "Expected `;`.");
+            try_consume_err(TokenType::semi);
 
             auto stmt = m_allocator.emplace<NodeStmt>();
             stmt->var = assign;
@@ -431,13 +437,13 @@ public:
                 return stmt;
             }
 
-            std::cerr << "Invalid scope." << std::endl;
+            std::cerr << "Invalid scope on line " << peek(-1).value().line << "." << std::endl;
             exit(EXIT_FAILURE);
         }
 
         if (auto if_cond = try_consume(TokenType::if_cond))
         {
-            try_consume(TokenType::open_paren, "Expected `(`.");
+            try_consume_err(TokenType::open_paren);
 
             auto stmt_if = m_allocator.emplace<NodeStmtIf>();
 
@@ -447,11 +453,11 @@ public:
             }
             else
             {
-                std::cerr << "Invalid expression." << std::endl;
+                std::cerr << "Invalid expression on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::close_paren, "Expected `)`.");
+            try_consume_err(TokenType::close_paren);
 
             if (auto scope = parse_scope())
             {
@@ -459,7 +465,7 @@ public:
             }
             else
             {
-                std::cerr << "Invalid scope." << std::endl;
+                std::cerr << "Invalid scope on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -484,7 +490,7 @@ public:
             }
             else
             {
-                std::cerr << "Invalid statement." << std::endl;
+                std::cerr << "Invalid statement on line " << peek(-1).value().line << "." << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
@@ -493,7 +499,7 @@ public:
     }
 
 private:
-    [[nodiscard]] std::optional<Token> peek(const size_t offset = 0) const
+    [[nodiscard]] std::optional<Token> peek(const int offset = 0) const
     {
         if (m_index + offset >= m_tokens.size())
         {
@@ -518,15 +524,15 @@ private:
         return {};
     }
 
-    Token try_consume(TokenType type, const std::string &err_msg)
+    Token try_consume_err(TokenType type)
     {
         if (auto token = try_consume(type))
         {
             return token.value();
         }
 
-        std::cerr << err_msg << std::endl;
-        exit(EXIT_FAILURE);
+        error_expected_term(to_string(type));
+        return {};
     }
 
     const std::vector<Token> m_tokens;
